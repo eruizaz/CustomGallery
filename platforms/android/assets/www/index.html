@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1, width=device-width, height=device-height" />
+
+		<link type="text/css" href="css/index.css" rel="stylesheet"></style>
+		<script src="https://maps.googleapis.com/maps/api/js"></script>
+
+		<script type="text/javascript" charset="utf-8" src="phonegap.js"></script>
+		<script type="text/javascript">
+
+			var map;
+			var pictureSource;
+			var destinationType;
+
+			document.addEventListener("deviceready",onDeviceReady,false);
+
+			// PhoneGap is ready to be used!
+			function onDeviceReady() {
+				pictureSource=navigator.camera.PictureSourceType;
+				destinationType=navigator.camera.DestinationType;
+				
+				// Listener de eventos de bateria que avisa cuando el nivel de bateria 
+				// esta por debajo de un cierto nivel. En este caso por debajo de 40.
+				// Cambiar n para probar nivel de bateria.
+				window.addEventListener("batteryStatus", function(batteryInfo) {
+					var n = 40
+					if (batteryInfo.level < n){
+						navigator.vibrate([500, 500, 500]);
+					}
+				}, false)
+			}
+
+			// El boton de anadir llama a este metodo para tomar una foto
+			function tomarFoto() {    
+				navigator.camera.getPicture(onSuccessPhoto, onFail, { 
+					quality: 50, 
+					destinationType: Camera.DestinationType.FILE_URI
+				});
+			}
+
+			// Si se toma la foto la suma al divColeccionImagenes, la galeria
+			function onSuccessPhoto(imageURI) {
+				document.getElementById("divColeccionImagenes").innerHTML = document.getElementById("divColeccionImagenes").innerHTML + "<div id='imagenPeq'><img onclick='mostrarImagen(this)' style='max-width:90%; max-height:148px; float:left;'  src='"+imageURI+"'><button onclick='geoMap()' class='botonGeo'>Geo</button></div>";
+			}
+
+			// Si consigue una posicion de geolocaclizacion, introduce un div
+			// para el mapa y un boton de volver. El mapa se crea y se centra
+			// con un marker
+			function onSuccessGeo(position){
+				document.getElementById("divOpaco").innerHTML = "<div id='divContenedor'><div id='map-canvas'></div><div onclick='volver()' class='botonOk'>Ok</div></div>";
+
+				var mapCanvas = document.getElementById('map-canvas');
+				var mapOptions = {
+					center: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+					zoom: 15,
+					mapTypeId: google.maps.MapTypeId.ROADMAP
+				}
+				var latlong = new google.maps.LatLng(position.coords.latitude,position.coords.longitude);
+				var map = new google.maps.Map(mapCanvas, mapOptions);
+				var marker = new google.maps.Marker({
+					position: latlong,
+					map: map,
+					title: 'Usted esta aqui'
+				});
+
+				navigator.vibrate(500); // Vibra medio segundo al abrir el mapa
+			}
+
+			function onFail(message) {
+					alert('Failed because: ' + message);
+			}
+
+			// Intenta obtener la geolocalizacion del dispositivo
+			function geoMap(){
+				navigator.geolocation.getCurrentPosition(onSuccessGeo, onFail, { timeout: 30000 });
+			}
+
+			// Muestra la imagen ampliada en un contenedor semitransparente
+			function mostrarImagen(imagen){
+				var miSource = imagen.src;
+				document.getElementById("divOpaco").innerHTML = "<div id='divContenedor'><img id='img-canvas' src="+miSource+" ></img><div onclick='volver()' class='botonOk'>Ok</div></div>";
+			}
+
+			// Funcion del boton de volver
+			function volver(){
+				document.getElementById("divOpaco").innerHTML = "";
+			}
+
+			// Accede a la galeria del dispositivo. Cuando el usuario escoge una foto esta 
+			// es tratada como las tomadas con la camara asociando en el mapa la 
+			// localizacion en que se coge de la galeria.
+			function getPhoto(source) {
+				// Retrieve image file location from specified source
+				navigator.camera.getPicture(onSuccessPhoto, onFail, { quality: 50,
+				destinationType: destinationType.FILE_URI,
+				sourceType: Camera.PictureSourceType.PHOTOLIBRARY });
+			}
+
+		</script>
+		
+		<title>Custom Gallery</title>
+
+	</head>
+	<body>
+		<div id="divTitulo"><h1 style="padding-left: 10px">Custom Gallery</h1></div>
+		<div onclick="getPhoto()" class="boton" id="botonG"><img src="img/iconG.png"></img></div>		
+		<div onclick="tomarFoto()" class="boton">+</div>
+		<div id="divColeccionImagenes"></div>
+		<div id="divOpaco"></div>	
+	</body>
+</html>
